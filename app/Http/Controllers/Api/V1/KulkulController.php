@@ -177,46 +177,67 @@ class KulkulController extends Controller
                 foreach($result as $item){
                     // nama
                     if (isset($item->kulkulLabel)) {
-                        $name->push($item->kulkulLabel->getValue());
+                        $name->push([
+                            'id'    => $this->parseData($item->kulkulName->getUri(), true),
+                            'value' => $item->kulkulLabel->getValue()
+                        ]);
                     } else {
-                        $name->push($this->parseData($item->kulkulName->getUri()));
+                        $name->push([
+                            'id'    => $this->parseData($item->kulkulName->getUri(), true),
+                            'value' => $this->parseData($item->kulkulName->getUri())
+                        ]);
                     }
 
                     // jumlah
                     if (isset($item->jumlah)) {
-                        $jumlah->push($item->jumlah->getValue());
+                        $jumlah->push([
+                            'id'    => (string) $item->jumlah->getValue(),
+                            'value' => (string) $item->jumlah->getValue()
+                        ]);
                     }
 
                     // bahan baku
                     if(isset($item->bahan_baku)){
-                        $bahan_baku->push($this->parseData($item->bahan_baku->getUri()));
+                        $bahan_baku->push([
+                            'id'    => $this->parseData($item->bahan_baku->getUri(), true),
+                            'value' => $this->parseData($item->bahan_baku->getUri())
+                        ]);
                     }
 
                     // ukuran
                     if (isset($item->ukuran)) {
-                        $ukuran->push($item->ukuran->getValue());
+                        $ukuran->push([
+                            'id'    => $this->parseData($item->dimension->getUri(), true),
+                            'value' => $item->ukuran->getValue()
+                        ]);
                     }
 
                     // penggangge
                     if (isset($item->pengangge)) {
-                        $pengangge->push($this->parseData($item->pengangge->getUri()));
+                        $pengangge->push([
+                            'id'    => $this->parseData($item->pengangge->getUri(), true),
+                            'value' => $this->parseData($item->pengangge->getUri()),
+                        ]);
                     }
 
                     // arah
                     if (isset($item->direction)) {
-                        $arah->push(isset($item->direction) ? $this->parseData($item->direction->getUri()) : 'Tidak tahu');
+                        $arah->push([
+                            'id'    => isset($item->direction) ? $this->parseData($item->direction->getUri(), true) : 'TidakTahu',
+                            'value' => isset($item->direction) ? $this->parseData($item->direction->getUri()) : 'Tidak tahu'
+                        ]);
                     }
                 }
 
-                $kulkul['names'] = $name->unique()->values();
-                $kulkul['numbers'] = $jumlah->unique()->values();
-                $kulkul['rawMaterials'] = $bahan_baku->unique()->values();
-                $kulkul['dimensions'] = $ukuran->unique()->values();
-                $kulkul['pengangges'] = $pengangge->unique()->values();
-                $kulkul['directions'] = $arah->unique()->values();
+                $kulkul['names'] = $name->unique('id')->values();
+                $kulkul['numbers'] = $jumlah->unique('id')->values();
+                $kulkul['rawMaterials'] = $bahan_baku->unique('id')->values();
+                $kulkul['dimensions'] = $ukuran->unique('id')->values();
+                $kulkul['pengangges'] = $pengangge->unique('id')->values();
+                $kulkul['directions'] = $arah->unique('id')->values();
 
                 // gambar
-                $resultChild = $this->sparql->query('
+                $result = $this->sparql->query('
                     SELECT DISTINCT
                         ?kulkulUrl
                     WHERE {
@@ -229,8 +250,8 @@ class KulkulController extends Controller
                 ');
 
                 $images = [];
-                if ($resultChild->numRows() > 0) {
-                    foreach ($resultChild as $item) {
+                if ($result->numRows() > 0) {
+                    foreach ($result as $item) {
                         array_push($images, $this->parseUrl($item->kulkulUrl->getValue()));
                     }
 
@@ -239,8 +260,48 @@ class KulkulController extends Controller
                     $kulkul['image'] = null;
                 }
                 $kulkul['imageGallery'] = $images;
-            }
 
+                // suara kulkul
+                $result = $this->sparql->query('
+                    SELECT DISTINCT 
+                        ?sound 
+                        ?activity 
+                        ?soundUrl 
+                        ?resourceType 
+                        ?soundlabel
+                    WHERE{
+                        thk:' . $id . ' rdf:type thk:Banjar;
+                        thk:hasKulkul ?kulkulName ;
+                        thk:hasActivity ?activity .
+                        ?kulkulName thk:hasSound ?sound .
+                        ?sound	rdfs:label ?soundlabel .
+                        ?sound thk:isSoundFor ?activity .
+                        ?kulkulName thk:isUsedFor ?activity .
+                        OPTIONAL {
+                            ?sound thk:hasSoundFile ?soundFile .
+                            ?kulkulName thk:hasSoundFile ?soundFile .
+                            ?soundFile thk:hasUrl ?soundUrl .
+                            ?soundFile thk:hasResourceType ?resourceType .
+                        }
+                    }
+                    ORDER BY ?sound
+                ');
+
+                $sounds = [];
+                if ($result->numRows() > 0) {
+                    foreach ($result as $item) {
+                        array_push($images, [
+                            'activity'  => $this->parseData($item->activity->getUri()),
+                            'sound'     => $item->soundLabel->getValue(),
+                            'type'      => $this->parseData($item->resourceType->getUri()),
+                            'file'      => $this->parseUrl($item->soundUrl->getValue())
+                        ]);
+                    }
+                }
+                $kulkul['sounds'] = collect($sounds)->unique('sound')->values();
+            }
+            
+            // banjar
             $result = $this->sparql->query('
                 SELECT 
                     ?banjar
@@ -330,43 +391,64 @@ class KulkulController extends Controller
                 foreach ($result as $item) {
                     // nama
                     if (isset($item->kulkulLabel)) {
-                        $name->push($item->kulkulLabel->getValue());
+                        $name->push([
+                            'id'    => $this->parseData($item->kulkulName->getUri(), true),
+                            'value' => $item->kulkulLabel->getValue()
+                        ]);
                     } else {
-                        $name->push($this->parseData($item->kulkulName->getUri()));
+                        $name->push([
+                            'id'    => $this->parseData($item->kulkulName->getUri(), true),
+                            'value' => $this->parseData($item->kulkulName->getUri())
+                        ]);
                     }
 
                     // jumlah
                     if (isset($item->jumlah)) {
-                        $jumlah->push($item->jumlah->getValue());
+                        $jumlah->push([
+                            'id'    => (string) $item->jumlah->getValue(),
+                            'value' => (string) $item->jumlah->getValue()
+                        ]);
                     }
 
                     // bahan baku
-                    if (isset($item->bahan_baku)) {
-                        $bahan_baku->push($this->parseData($item->bahan_baku->getUri()));
+                    if(isset($item->bahan_baku)){
+                        $bahan_baku->push([
+                            'id'    => $this->parseData($item->bahan_baku->getUri(), true),
+                            'value' => $this->parseData($item->bahan_baku->getUri())
+                        ]);
                     }
 
                     // ukuran
                     if (isset($item->ukuran)) {
-                        $ukuran->push($item->ukuran->getValue());
+                        $ukuran->push([
+                            'id'    => $this->parseData($item->dimension->getUri(), true),
+                            'value' => $item->ukuran->getValue()
+                        ]);
                     }
 
                     // penggangge
                     if (isset($item->pengangge)) {
-                        $pengangge->push($this->parseData($item->pengangge->getUri()));
+                        $pengangge->push([
+                            'id'    => $this->parseData($item->pengangge->getUri(), true),
+                            'value' => $this->parseData($item->pengangge->getUri()),
+                        ]);
                     }
 
                     // arah
                     if (isset($item->direction)) {
-                        $arah->push(isset($item->direction) ? $this->parseData($item->direction->getUri()) : 'Tidak tahu');
+                        $arah->push([
+                            'id'    => isset($item->direction) ? $this->parseData($item->direction->getUri(), true) : 'TidakTahu',
+                            'value' => isset($item->direction) ? $this->parseData($item->direction->getUri()) : 'Tidak tahu'
+                        ]);
                     }
                 }
 
-                $kulkul['names'] = $name->unique()->values();
-                $kulkul['numbers'] = $jumlah->unique()->values();
-                $kulkul['rawMaterials'] = $bahan_baku->unique()->values();
-                $kulkul['dimensions'] = $ukuran->unique()->values();
-                $kulkul['pengangges'] = $pengangge->unique()->values();
-                $kulkul['directions'] = $arah->unique()->values();
+                $kulkul['names'] = $name->unique('id')->values();
+                $kulkul['numbers'] = $jumlah->unique('id')->values();
+                $kulkul['rawMaterials'] = $bahan_baku->unique('id')->values();
+                $kulkul['dimensions'] = $ukuran->unique('id')->values();
+                $kulkul['pengangges'] = $pengangge->unique('id')->values();
+                $kulkul['directions'] = $arah->unique('id')->values();
 
                 // gambar
                 $resultChild = $this->sparql->query('
@@ -392,6 +474,45 @@ class KulkulController extends Controller
                     $kulkul['image'] = null;
                 }
                 $kulkul['imageGallery'] = $images;
+
+                // suara kulkul
+                $result = $this->sparql->query('
+                    SELECT DISTINCT 
+                        ?sound 
+                        ?activity 
+                        ?soundUrl 
+                        ?resourceType 
+                        ?soundlabel
+                    WHERE{
+                        thk:' . $id . ' rdf:type thk:Banjar;
+                        thk:hasKulkul ?kulkulName ;
+                        thk:hasActivity ?activity .
+                        ?kulkulName thk:hasSound ?sound .
+                        ?sound rdfs:label ?soundlabel .
+                        ?sound thk:isSoundFor ?activity .
+                        ?kulkulName thk:isUsedFor ?activity .
+                        OPTIONAL {
+                            ?sound thk:hasSoundFile ?soundFile .
+                            ?kulkulName thk:hasSoundFile ?soundFile .
+                            ?soundFile thk:hasUrl ?soundUrl .
+                            ?soundFile thk:hasResourceType ?resourceType .
+                        }
+                    }
+                    ORDER BY ?sound
+                ');
+
+                $sounds = [];
+                if ($result->numRows() > 0) {
+                    foreach ($result as $item) {
+                        array_push($sounds, [
+                            'activity'  => $this->parseData($item->activity->getUri()),
+                            'sound'     => $item->soundlabel->getValue(),
+                            'type'      => isset($item->resourceType) ? $this->parseData($item->resourceType->getUri()) : null,
+                            'file'      => isset($item->soundUrl) ? $this->parseUrl($item->soundUrl->getValue()) : null
+                        ]);
+                    }
+                }
+                $kulkul['sounds'] = $sounds;
             }
 
             return response()->json([

@@ -182,61 +182,69 @@ class LocationController extends Controller
     }
 
     public function indexById($type, $id){
-        $parameter = "?kulkul a thk:$id .";
-		if($type === "jumlah")
+		if($type === "jumlah"){
 			$parameter = "?kulkul thk:numberKulkul $id .";
-		if($type === "ukuran")
+        }else if ($type === "ukuran"){
 			$parameter = "?kulkul thk:hasDimension thk:$id .";
-		if($type === "bahan")
+        }else if ($type === "bahan_baku"){
 			$parameter = "?kulkul thk:hasRawMaterial thk:$id .";
-		if($type === "pengangge")
+        }else if ($type === "pengangge"){
 			$parameter = "?kulkul thk:hasPengangge thk:$id .";
-		if($type === "aktivitas")
+        }else if ($type === "aktivitas"){
 			$parameter = "?kulkul thk:isUsedFor thk:$id .";
-		if($type === "suara")
+        }else if ($type === "suara"){
 			$parameter = "?kulkul thk:hasSound ?sound .
 						?sound rdfs:label ?label .
 						?sound thk:isSoundFor ?activity .
 						?kulkul thk:isUsedFor ?activity .
-						?tempat thk:hasActivity ?activity .
+						?lokasi thk:hasActivity ?activity .
 						FILTER (CONTAINS (?label, '$id'))";
-		if($type === "arah")
-			$parameter = "?kulkul thk:hasDirection thk:$id .";
-		if($type === "tipe_suara")
+        }else if ($type === "arah"){
+            if($id === 'TidakTahu'){
+                $parameter = "?kulkul thk:hasDirection thk: .";
+            }else{
+                $parameter = "?kulkul thk:hasDirection thk:$id .";
+            }
+        }else if ($type === "tipe_suara"){
 			$parameter = "?kulkul thk:hasSoundFile ?soundFile .
 					?soundFile thk:hasUrl ?soundUrl .
 					?soundFile thk:hasResourceType thk:$id .";
+        }else{
+            $parameter = "?lokasi rdf:type thk:$id .";
+        }
+
         try {
             $result = $this->sparql->query('
                 SELECT DISTINCT 
                     ?kabupaten 
                     ?kelompok 
-                    ?tempat
+                    ?lokasi
 				WHERE {
-                    '.$parameter.'
-					?tempat thk:hasKulkul ?kulkul .
-					?tempat rdf:type ?kelompok .
+                    '.$parameter. '
+					?lokasi thk:hasKulkul ?kulkul .
+					?lokasi rdf:type ?kelompok .
 					FILTER (?kelompok NOT IN (owl:NamedIndividual)) .
-					?tempat thk:isPartOf* ?kabupaten .
+					?lokasi thk:isPartOf* ?kabupaten .
 					?kabupaten rdf:type thk:Kabupaten . 
                 }
-                    ORDER BY ?kabupaten asc (?kelompok) asc (?tempat)
+                ORDER BY ?kabupaten asc (?kelompok) asc (?lokasi)
             ');
 
             $data = [];
 
             foreach ($result as $item) {
-                $id_location = $this->parseData($item->tempat->getUri(), true);
-                $location = $this->parseData($item->tempat->getUri());
-                $id_group   = $this->parseData($item->kelompok->getUri(), true);
-                $group   = $this->parseData($item->kelompok->getUri());
+                $id_location    = $this->parseData($item->lokasi->getUri(), true);
+                $location       = $this->parseData($item->lokasi->getUri());
+                $group          = $this->parseData($item->kelompok->getUri(), true);
+                $group          = $group === 'Desa' ? 'Desa' : ($group === 'Banjar' ? 'Banjar' : 'Pura');
+                $kabupaten      = $this->parseData($item->kabupaten->getUri());
                 // $image = isset($item->image) ? $this->parseUrl($item->image->getValue()) : '';
 
-                array_push($data, [
-                    'id'    => $id_location,
-                    'name'  => $location,
-                    'group' => $group,
-                ]);
+                $data[$group][$kabupaten][] = [ 
+                    'id'           => $id_location,
+                    'value'        => $location,
+                    'type'         => $group,
+                ];
 
                 // dd($item);
             }

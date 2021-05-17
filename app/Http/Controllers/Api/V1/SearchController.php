@@ -41,7 +41,7 @@ class SearchController extends Controller
                     ' . $query_output['bahan_baku'] . '
                     ' . $query_output['tipe_suara'] . '
 
-                    ' . $query_filter['tempat'] . '
+                    ' . $query_filter['lokasi'] . '
                     ' . $query_filter['jumlah'] . '
                     ' . $query_filter['ukuran'] . '
                     ' . $query_filter['pengangge'] . '
@@ -109,35 +109,35 @@ class SearchController extends Controller
 
         if($output === 'arah'){
             $query['arah'] = '?kulkulName thk:hasDirection ?arah .
-                            ?tempat thk:hasKulkul ?kulkulName .';
+                            ?lokasi thk:hasKulkul ?kulkulName .';
         }
         if ($output === 'aktivitas'){
             $query['aktivitas'] = '?kulkulName thk:isUsedFor ?aktivitas .
                             ?aktivitas a ?groupactivity .
-                            ?tempat thk:hasKulkul ?kulkulName .';
+                            ?lokasi thk:hasKulkul ?kulkulName .';
         }
         if ($output === 'jumlah'){
             $query['jumlah'] = '?kulkulName thk:numberKulkul ?jumlah .
-                            ?tempat thk:hasKulkul ?kulkulName .';
+                            ?lokasi thk:hasKulkul ?kulkulName .';
         }
         if ($output === 'suara'){
             $query['suara'] = '?kulkulName thk:hasSound ?sound01 .
                             ?sound01 rdfs:label ?suara .
-                            ?tempat thk:hasKulkul ?kulkulName .
+                            ?lokasi thk:hasKulkul ?kulkulName .
                             ?sound01 thk:isSoundFor ?aktivitas .';
         }
         if ($output === 'ukuran'){
             $query['ukuran'] = '?kulkulName thk:hasDimension ?ukuranKey .
                             ?ukuranKey rdfs:label ?ukuran .
-                            ?tempat thk:hasKulkul ?kulkulName .';
+                            ?lokasi thk:hasKulkul ?kulkulName .';
         }
         if ($output === 'pengangge'){
             $query['pengangge'] = '?kulkulName thk:hasPengangge ?pengangge .
-                                ?tempat thk:hasKulkul ?kulkulName .';
+                                ?lokasi thk:hasKulkul ?kulkulName .';
         }
         if ($output === 'bahan_baku'){
             $query['bahan_baku'] = '?kulkulName thk:hasRawMaterial ?bahan_baku .
-                                ?tempat thk:hasKulkul ?kulkulName .';
+                                ?lokasi thk:hasKulkul ?kulkulName .';
         }
         if ($output === 'tipe_suara'){
             $query['tipe_suara'] = '?kulkulName thk:hasSound ?sound01 .
@@ -145,7 +145,7 @@ class SearchController extends Controller
                                         ?kulkulName thk:hasSoundFile ?soundFile .
                                         ?soundFile thk:hasUrl ?soundUrl .
                                         ?soundFile thk:hasResourceType ?tipe_suara .
-                                ?tempat thk:hasKulkul ?kulkulName .';
+                                ?lokasi thk:hasKulkul ?kulkulName .';
         }
 
         return $query;
@@ -161,41 +161,41 @@ class SearchController extends Controller
             'pengangge'  => '',
             'bahan_baku' => '',
             'tipe_suara' => '',
-            'tempat'     => ''
+            'lokasi'     => ''
         ];
 
         if (!empty($filter['arah'])) {
             $query['arah'] = '?kulkulName thk:hasDirection thk:' . $filter['arah'] . ' .
-                                        ?tempat thk:hasKulkul ?kulkulName .';
+                                        ?lokasi thk:hasKulkul ?kulkulName .';
         }
         if (!empty($filter['aktivitas'])) {
             $query['aktivitas'] = '?kulkulName thk:isUsedFor ?aktivitas .
                                         ?aktivitas a thk:' . $filter['aktivitas'] . ' .
-                                        ?tempat thk:hasKulkul ?kulkulName .';
+                                        ?lokasi thk:hasKulkul ?kulkulName .';
         }
         if (!empty($filter['jumlah'])) {
             $query['jumlah'] = '?kulkulName thk:numberKulkul ' . $filter['jumlah'] . ' .
-                                        ?tempat thk:hasKulkul ?kulkulName .';
+                                        ?lokasi thk:hasKulkul ?kulkulName .';
         }
         if (!empty($filter['suara'])) {
             $query['suara'] = '?kulkulName thk:hasSound ?sound01 .
                                     ?sound01 rdfs:label ?sound .
-                                    ?tempat thk:hasKulkul ?kulkulName .
+                                    ?lokasi thk:hasKulkul ?kulkulName .
                                     ?sound01 thk:isSoundFor ?aktivitas .
                                     FILTER (CONTAINS (?sound, ' . $filter['suara'] . '))';
         }
         if (!empty($filter['ukuran'])) {
             $query['ukuran'] = '?kulkulName thk:hasDimension thk:' . $filter['ukuran'] . ' .
                                         thk:' . $filter['ukuran'] . ' rdfs:label ?dimension02 .
-                                        ?tempat thk:hasKulkul ?kulkulName .';
+                                        ?lokasi thk:hasKulkul ?kulkulName .';
         }
         if (!empty($filter['pengangge'])) {
             $query['pengangge'] = '?kulkulName thk:hasPengangge thk:' . $filter['pengangge'] . ' .
-                                        ?tempat thk:hasKulkul ?kulkulName .';
+                                        ?lokasi thk:hasKulkul ?kulkulName .';
         }
         if (!empty($filter['bahan_baku'])) {
             $query['bahan_baku'] = '?kulkulName thk:hasRawMaterial thk:' . $filter['bahan_baku'] . ' .
-                                            ?tempat thk:hasKulkul ?kulkulName .';
+                                            ?lokasi thk:hasKulkul ?kulkulName .';
         }
         if (!empty($filter['tipe_suara'])) {
             $query['tipe_suara'] = '?kulkulName thk:hasSound ?sound01 .
@@ -203,13 +203,13 @@ class SearchController extends Controller
                                                     ?kulkulName thk:hasSoundFile ?soundFile .
                                                     ?soundFile thk:hasUrl ?soundUrl .
                                                     ?soundFile thk:hasResourceType thk:' . $filter['tipe_suara'] . ' .
-                                            ?tempat thk:hasKulkul ?kulkulName .';
+                                            ?lokasi thk:hasKulkul ?kulkulName .';
         }
-        if (!empty($filter['tempat'])) {
-            $query['tempat'] = '?tempat thk:hasKulkul ?kulkulName .
-                                                ?tempat a thk:' . $filter['tempat'] . ' .
-                                        FILTER (?tempat NOT IN (owl:NamedIndividual))
-                                        ?tempat thk:isPartOf* ?kabupaten .
+        if (!empty($filter['lokasi'])) {
+            $query['lokasi'] = '?lokasi thk:hasKulkul ?kulkulName .
+                                                ?lokasi a thk:' . $filter['lokasi'] . ' .
+                                        FILTER (?lokasi NOT IN (owl:NamedIndividual))
+                                        ?lokasi thk:isPartOf* ?kabupaten .
                                         ?kabupaten a thk:Kabupaten .';
         }
 

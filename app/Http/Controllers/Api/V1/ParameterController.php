@@ -31,8 +31,8 @@ class ParameterController extends Controller
                     'value' => 'Ukuran'
                 ],
                 [
-                    'id'    => 'tempat',
-                    'value' => 'Tempat'
+                    'id'    => 'lokasi',
+                    'value' => 'Lokasi'
                 ],
                 [
                     'id'    => 'pengangge',
@@ -116,24 +116,24 @@ class ParameterController extends Controller
                 }
             }
 
-            // tempat
+            // lokasi
             $result = $this->sparql->query("
-                SELECT DISTINCT ?tempat { 
-                    ?tempat rdfs:subClassOf+ thk:Tempat .
-					FILTER (?tempat IN (thk:Banjar, thk:Desa, thk:PuraPuseh, thk:PuraDalem, thk:PuraDesa)) .
+                SELECT DISTINCT ?lokasi { 
+                    ?lokasi rdfs:subClassOf+ thk:Tempat .
+					FILTER (?lokasi IN (thk:Banjar, thk:Desa, thk:PuraPuseh, thk:PuraDalem, thk:PuraDesa)) .
 				}
-				ORDER BY ?tempat
+				ORDER BY ?lokasi
             ");
 
             if ($result->numRows() > 0) {
                 foreach ($result as $data) {
-                    $uri = $data->tempat->getUri();
+                    $uri = $data->lokasi->getUri();
 
                     $id = $this->parseData($uri, true);
 
                     $populate = [
                         'id'    => $id,
-                        'category' => 'tempat',
+                        'category' => 'lokasi',
                         'value' => $this->parseData($uri)
                     ];
                     array_push($filter, $populate);
