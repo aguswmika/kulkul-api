@@ -41,6 +41,6 @@ class Controller extends BaseController
 
     public function parseUrl($url)
     {
-        return 'http://ccbp.oss.web.id/' . $url;
+        return 'https://server.aguswmika.id/storage/' . $url;
     }
 }

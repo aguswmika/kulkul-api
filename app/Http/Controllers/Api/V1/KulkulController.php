@@ -270,9 +270,9 @@ class KulkulController extends Controller
                         ?resourceType 
                         ?soundlabel
                     WHERE{
-                        thk:' . $id . ' rdf:type thk:Banjar;
-                        thk:hasKulkul ?kulkulName ;
-                        thk:hasActivity ?activity .
+                        thk:' . $id . ' rdf:type thk:Desa;
+                                        thk:hasKulkul ?kulkulName ;
+                                        thk:hasActivity ?activity .
                         ?kulkulName thk:hasSound ?sound .
                         ?sound	rdfs:label ?soundlabel .
                         ?sound thk:isSoundFor ?activity .
@@ -290,11 +290,14 @@ class KulkulController extends Controller
                 $sounds = [];
                 if ($result->numRows() > 0) {
                     foreach ($result as $item) {
-                        array_push($images, [
-                            'activity'  => $this->parseData($item->activity->getUri()),
-                            'sound'     => $item->soundLabel->getValue(),
-                            'type'      => $this->parseData($item->resourceType->getUri()),
-                            'file'      => $this->parseUrl($item->soundUrl->getValue())
+                        array_push($sounds, [
+                            'activity'  => [
+                                'id'        => $this->parseData($item->activity->getUri(), true),
+                                'value'     => $this->parseData($item->activity->getUri())
+                            ],
+                            'sound'     => $item->soundlabel->getValue(),
+                            'type'      => isset($item->resourceType) ? $this->parseData($item->resourceType->getUri()) : null,
+                            'file'      => isset($item->soundUrl) ? $this->parseUrl($item->soundUrl->getValue()) : null
                         ]);
                     }
                 }
@@ -505,7 +508,10 @@ class KulkulController extends Controller
                 if ($result->numRows() > 0) {
                     foreach ($result as $item) {
                         array_push($sounds, [
-                            'activity'  => $this->parseData($item->activity->getUri()),
+                            'activity'  => [
+                                'id'        => $this->parseData($item->activity->getUri(), true),
+                                'value'     => $this->parseData($item->activity->getUri())
+                            ],
                             'sound'     => $item->soundlabel->getValue(),
                             'type'      => isset($item->resourceType) ? $this->parseData($item->resourceType->getUri()) : null,
                             'file'      => isset($item->soundUrl) ? $this->parseUrl($item->soundUrl->getValue()) : null

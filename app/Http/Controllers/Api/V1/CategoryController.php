@@ -77,6 +77,7 @@ class CategoryController extends Controller
 
             if ($result->numRows() > 0) {
                 foreach ($result as $data) {
+                    $id = $this->parseData($data->ukuran->getUri(), true);
                     $populate = [
                         'id'    => $id,
                         'nama' => $data->labelukuran->getValue()
