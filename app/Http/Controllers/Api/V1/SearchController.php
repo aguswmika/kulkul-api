@@ -30,7 +30,7 @@ class SearchController extends Controller
             $query_filter = $this->findQueryFilter($request->filter);
 
             $genered_query = '
-                SELECT DISTINCT (?' . $request->output . ' as ?output)
+                SELECT DISTINCT (?' . $request->output . ' as ?output) ?ukuranKey
                 {
                     ' . $query_output['arah'] . '
                     ' . $query_output['aktivitas'] . '
@@ -67,10 +67,16 @@ class SearchController extends Controller
                                 'value' => (string) $this->parseData($uri)
                             ];
                         }else{
-                            $value = $data->output->getValue();
+                            if($request->output === 'ukuran'){
+                                $id = $this->parseData($data->ukuranKey->getUri(), true);
+                            }else{
+                                $id = $data->output->getValue();
+                            }
 
+                            $value = $data->output->getValue();
+                            
                             $output = [
-                                'id'    => (string) $value,
+                                'id'    => (string) $id,
                                 'value' => (string) $value
                             ];
                         }
