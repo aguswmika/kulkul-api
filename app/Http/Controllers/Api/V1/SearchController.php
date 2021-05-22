@@ -61,9 +61,15 @@ class SearchController extends Controller
                     if(property_exists($data, 'output')){
                         if(method_exists($data->output, 'getUri')){
                             $uri = $data->output->getUri();
+
+                            if ($request->output === 'lokasi') {
+                                $id = $this->parseData($this->parsePura($uri), true);
+                            } else {
+                                $id = $this->parseData($uri, true);
+                            }
                             
                             $output = [
-                                'id'    => (string) $this->parseData($uri, true),
+                                'id'    => (string) $id,
                                 'value' => (string) $this->parseData($uri)
                             ];
                         }else{

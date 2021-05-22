@@ -90,11 +90,19 @@ class CategoryController extends Controller
             $result = $this->sparql->query("
                 SELECT DISTINCT ?lokasi { 
                     ?lokasi rdfs:subClassOf+ thk:Tempat .
-					FILTER (?lokasi IN (thk:Banjar, thk:Desa, thk:PuraPuseh, thk:PuraDalem, thk:PuraDesa)) .
+					FILTER (?lokasi IN (thk:Banjar, thk:Desa)) .
 				}
 				ORDER BY ?lokasi
             ");
 
+            array_push($category[2]['child'], [
+                'id'        => 'Kabupaten',
+                'nama'      => 'Kabupaten'
+            ]);
+            array_push($category[2]['child'], [
+                'id'        => 'Kecamatan',
+                'nama'      => 'Kecamatan'
+            ]);
             if ($result->numRows() > 0) {
                 foreach ($result as $data) {
                     $uri = $data->lokasi->getUri();
@@ -108,6 +116,11 @@ class CategoryController extends Controller
                     array_push($category[2]['child'], $populate);
                 }
             }
+
+            array_push($category[2]['child'], [
+                'id'        => 'Pura',
+                'nama'      => 'Pura'
+            ]);
 
             // jumlah
             $result = $this->sparql->query("

@@ -29,11 +29,14 @@ Route::group([
     Route::get('/location', [LocationController::class, 'index']);
     Route::get('/location/{id}/desa', [LocationController::class, 'indexDesa']);
     Route::get('/location/{type}/{id}', [LocationController::class, 'indexById']);
+
     Route::get('/kulkul/{id}/desa', [KulkulController::class, 'showByDesa']);
     Route::get('/kulkul/{id}/banjar', [KulkulController::class, 'showByBanjar']);
-    // Route::get('/kulkul', [KulkulController::class, 'index']);
-    // Route::get('/kulkul-location/{id}', [KulkulController::class, 'indexByLocation']);
+    Route::get('/kulkul/{id}/pura', [KulkulController::class, 'showByPura']);
+
     Route::get('/category', [CategoryController::class, 'index']);
+
     Route::get('/params', [ParameterController::class, 'index']);
+    
     Route::post('/search', [SearchController::class, 'index']);
 });

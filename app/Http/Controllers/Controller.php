@@ -39,6 +39,14 @@ class Controller extends BaseController
         return $out;
     }
 
+    public function parsePura($data){
+        $data = str_replace('PuraDesa', '', $data);
+        $data = str_replace('PuraPuseh', '', $data);
+        $data = str_replace('PuraDalem', '', $data);
+
+        return $data;
+    }
+
     public function parseUrl($url)
     {
         return 'https://server.aguswmika.id/storage/' . $url;

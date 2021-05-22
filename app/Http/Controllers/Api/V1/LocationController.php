@@ -192,7 +192,9 @@ class LocationController extends Controller
 			$parameter = "?kulkul thk:hasPengangge thk:$id .";
         }else if ($type === "aktivitas"){
 			$parameter = "?lokasi thk:hasActivity ?activity .
-                        ?activity rdf:type thk:BencanaAlam .";
+                        ?activity rdf:type thk:$id .";
+        }else if ($type === 'kegiatan'){
+            $parameter = "?kulkul thk:isUsedFor thk:$id .";
         }else if ($type === "suara"){
 			$parameter = "?kulkul thk:hasSound ?sound .
 						?sound rdfs:label ?label .
@@ -214,6 +216,12 @@ class LocationController extends Controller
             $parameter = "?lokasi rdf:type thk:$id .";
         }
 
+        $hasKulkul = '';
+        if($id === 'Kecamatan'){
+        }else{
+            $hasKulkul = '?lokasi thk:hasKulkul ?kulkul .';
+        }
+
         try {
             $result = $this->sparql->query('
                 SELECT DISTINCT 
@@ -222,7 +230,7 @@ class LocationController extends Controller
                     ?lokasi
 				WHERE {
                     '.$parameter. '
-					?lokasi thk:hasKulkul ?kulkul .
+                    '.$hasKulkul.'
 					?lokasi rdf:type ?kelompok
 					FILTER (?kelompok NOT IN (owl:NamedIndividual)) .
 					?lokasi thk:isPartOf* ?kabupaten .
@@ -240,6 +248,17 @@ class LocationController extends Controller
                 $group          = $group === 'Desa' ? 'Desa' : ($group === 'Banjar' ? 'Banjar' : 'Pura');
                 $kabupaten      = $this->parseData($item->kabupaten->getUri());
 
+                if($group === 'Pura'){
+                    $id_location = $this->parsePura($id_location);
+                }
+
+                if ($id === 'Kecamatan') {
+                    $group = 'Kecamatan';
+                    $location = explode(' ', $location);
+                    $location[0] = 'Kecamatan';
+                    $location = implode(' ', $location);
+                }
+
                 $data[$group][$kabupaten][] = [ 
                     'id'           => $id_location,
                     'value'        => $location,
@@ -247,16 +266,19 @@ class LocationController extends Controller
                 ];
             }
 
-            // sorting desa, banjar, pura (asc)
-            $sortedData = [];
-            if (isset($data['Desa']) && count($data['Desa']))
-                $sortedData['Desa'] = $data['Desa'];
-            if (isset($data['Banjar']) && count($data['Banjar']))
-                $sortedData['Banjar'] = $data['Banjar'];
-            if (isset($data['Pura']) && count($data['Pura']))
-                $sortedData['Pura'] = $data['Pura'];
+            if ($id !== 'Kecamatan') {
+                // sorting desa, banjar, pura (asc)
+                $sortedData = [];
+                if (isset($data['Desa']) && count($data['Desa']))
+                    $sortedData['Desa'] = $data['Desa'];
+                if (isset($data['Banjar']) && count($data['Banjar']))
+                    $sortedData['Banjar'] = $data['Banjar'];
+                if (isset($data['Pura']) && count($data['Pura']))
+                    $sortedData['Pura'] = $data['Pura'];
+                
+                $data = $sortedData;
+            }
 
-            $data = $sortedData;
 
             return response()->json([
                 'status'  => 'success',

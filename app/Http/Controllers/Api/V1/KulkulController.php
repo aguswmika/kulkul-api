@@ -229,12 +229,19 @@ class KulkulController extends Controller
                     }
                 }
 
-                $kulkul['names'] = $name->unique('id')->values();
+                $kulkul['names'] = $name->unique('value')->values();
                 $kulkul['numbers'] = $jumlah->unique('id')->values();
                 $kulkul['rawMaterials'] = $bahan_baku->unique('id')->values();
                 $kulkul['dimensions'] = $ukuran->unique('id')->values();
                 $kulkul['pengangges'] = $pengangge->unique('id')->values();
                 $kulkul['directions'] = $arah->unique('id')->values();
+
+                if (count($kulkul['directions']) === 0) {
+                    $kulkul['directions'] = [[
+                        'id'    => '',
+                        'value' => 'Tidak Tahu'
+                    ]];
+                }
 
                 // gambar
                 $result = $this->sparql->query('
@@ -446,12 +453,19 @@ class KulkulController extends Controller
                     }
                 }
 
-                $kulkul['names'] = $name->unique('id')->values();
+                $kulkul['names'] = $name->unique('value')->values();
                 $kulkul['numbers'] = $jumlah->unique('id')->values();
                 $kulkul['rawMaterials'] = $bahan_baku->unique('id')->values();
                 $kulkul['dimensions'] = $ukuran->unique('id')->values();
                 $kulkul['pengangges'] = $pengangge->unique('id')->values();
                 $kulkul['directions'] = $arah->unique('id')->values();
+
+                if (count($kulkul['directions']) === 0) {
+                    $kulkul['directions'] = [[
+                        'id'    => '',
+                        'value' => 'Tidak Tahu'
+                    ]];
+                }
 
                 // gambar
                 $resultChild = $this->sparql->query('
@@ -533,360 +547,207 @@ class KulkulController extends Controller
         }
     }
 
-    // public function showByDesa($id){
-    //     try {
-    //         // detail kulkul
-    //         $result = $this->sparql->query('
-    //             SELECT 
-    //                 *
-    //             WHERE {
-    //                 thk:'.$id.' rdf:type thk:Desa;
-    //                             thk:hasKulkul ?kulkulName .
-    //                 OPTIONAL {
-    //                     ?kulkulName rdfs:label ?kulkulLabel
-    //                 }
-    //             }
-    //         ');
+    public function showByPura($id)
+    {
+        try {
+            $kulkul = [
+                'puraDesa' => $this->kulkulPura($id, 'PuraDesa'),
+                'puraPuseh' => $this->kulkulPura($id, 'PuraPuseh'),
+                'puraDalem' => $this->kulkulPura($id, 'PuraDalem')
+            ];
 
-    //         $kulkul = null;
-    //         if($result->numRows() > 0){
-    //             if (isset($result[0]->kulkulLabel)) {
-    //                 $kulkul['name'] = $this->parseData($result[0]->kulkulLabel->getValue());
-    //             } else {
-    //                 $kulkul['name'] = $this->parseData($result[0]->kulkulName->getUri());
-    //             }
+            return response()->json([
+                'status'  => 'success',
+                'data'    => $kulkul,
+            ]);
+        } catch (Throwable $e) {
+            return response()->json([
+                'status'  => 'fail',
+                'message' => $e->getMessage() . $e->getLine()
+            ]);
+        }
+    }
 
-    //             // jumlah kulkul
-    //             $resultChild = $this->sparql->query('
-    //                 SELECT DISTINCT
-    //                     ?jumlah
-    //                 WHERE {
-    //                     thk:' . $id . ' rdf:type thk:Desa;
-    //                                     thk:hasKulkul ?kulkulName .
-    //                     ?kulkulName thk:numberKulkul ?jumlah
-    //                 }
-    //             ');
+    private function kulkulPura($id, $type)
+    {
+        // detail kulkul            
+        $result = $this->sparql->query('
+            SELECT DISTINCT 
+                ?kulkulName
+                ?jumlah 
+                ?dimension 
+                ?ukuran 
+                ?bahan_baku
+                ?pengangge 
+                ?direction
+            WHERE {
+                thk:' . $id . ' rdf:type thk:Desa .
+                ?pura thk:hasKulkul ?kulkulName .
+                ?pura rdf:type thk:'.$type.';
+                        thk:isPartOf thk:' . $id . ' .
+                OPTIONAL { ?kulkulName rdfs:label ?kulkulLabel. }
+                OPTIONAL { ?kulkulName thk:numberKulkul ?jumlah . }
+                OPTIONAL {	
+                    ?kulkulName thk:hasDimension ?dimension .
+                    ?dimension rdfs:label ?ukuran .
+                }
+                OPTIONAL { ?kulkulName thk:hasRawMaterial ?bahan_baku . }
+                OPTIONAL { ?kulkulName thk:hasPengangge ?pengangge . }
+                OPTIONAL { ?kulkulName thk:hasDirection ?direction . }
+            }
+        ');
 
-    //             $jumlah = [];
-    //             if ($resultChild->numRows() > 0) {
-    //                 foreach ($resultChild as $item) {
-    //                     array_push($jumlah, $item->jumlah->getValue());
-    //                 }
-    //             }
+        $kulkul = null;
+        if ($result->numRows() > 0) {
+            $name = collect();
+            $jumlah = collect();
+            $bahan_baku = collect();
+            $ukuran = collect();
+            $pengangge = collect();
+            $arah = collect();
 
-    //             $kulkul['numbers'] = $jumlah;
+            foreach ($result as $item) {
+                // nama
+                $name->push([
+                    'id'    => $this->parseData($item->kulkulName->getUri(), true),
+                    'value' => $this->parseData($item->kulkulName->getUri())
+                ]);
 
-    //             // bahan baku 
-    //             $resultChild = $this->sparql->query('
-    //                 SELECT DISTINCT
-    //                     ?bahan_baku
-    //                 WHERE {
-    //                     thk:' . $id . ' rdf:type thk:Desa;
-    //                                     thk:hasKulkul ?kulkulName .
-    //                     ?kulkulName thk:hasRawMaterial ?bahan_baku
-    //                 }
-    //             ');
+                // jumlah
+                if (isset($item->jumlah)) {
+                    $jumlah->push([
+                        'id'    => (string) $item->jumlah->getValue(),
+                        'value' => (string) $item->jumlah->getValue()
+                    ]);
+                }
 
-    //             $bahan_baku = [];
-    //             if ($resultChild->numRows() > 0) {
-    //                 foreach ($resultChild as $item) {
-    //                     array_push($bahan_baku, $this->parseData($item->bahan_baku->getUri()));
-    //                 }
-    //             }
+                // bahan baku
+                if (isset($item->bahan_baku)) {
+                    $bahan_baku->push([
+                        'id'    => $this->parseData($item->bahan_baku->getUri(), true),
+                        'value' => $this->parseData($item->bahan_baku->getUri())
+                    ]);
+                }
 
-    //             $kulkul['rawMaterials'] = $bahan_baku;
+                // ukuran
+                if (isset($item->ukuran)) {
+                    $ukuran->push([
+                        'id'    => $this->parseData($item->dimension->getUri(), true),
+                        'value' => $item->ukuran->getValue()
+                    ]);
+                }
 
-    //             // ukuran kulkul
-    //             $resultChild = $this->sparql->query('
-    //                 SELECT DISTINCT
-    //                     ?ukuran
-    //                 WHERE {
-    //                     thk:'.$id.' rdf:type thk:Desa;
-    //                                 thk:hasKulkul ?kulkulName .
-    //                     ?kulkulName thk:hasDimension ?dimension .
-    //                     ?dimension rdfs:label ?ukuran
-    //                 }
-    //             ');
+                // penggangge
+                if (isset($item->pengangge)) {
+                    $pengangge->push([
+                        'id'    => $this->parseData($item->pengangge->getUri(), true),
+                        'value' => $this->parseData($item->pengangge->getUri()),
+                    ]);
+                }
 
-    //             $ukuran = [];
-    //             if ($resultChild->numRows() > 0) {
-    //                 foreach ($resultChild as $item) {
-    //                     array_push($ukuran, $item->ukuran->getValue());
-    //                 }
-    //             }
+                // arah
+                if (isset($item->direction)) {
+                    $arah->push([
+                        'id'    => isset($item->direction) ? $this->parseData($item->direction->getUri(), true) : 'TidakTahu',
+                        'value' => isset($item->direction) ? $this->parseData($item->direction->getUri()) : 'Tidak tahu'
+                    ]);
+                }
+            }
 
-    //             $kulkul['dimensions'] = $ukuran;
+            $kulkul['names'] = $name->unique('value')->values();
+            $kulkul['numbers'] = $jumlah->unique('id')->values();
+            $kulkul['rawMaterials'] = $bahan_baku->unique('id')->values();
+            $kulkul['dimensions'] = $ukuran->unique('id')->values();
+            $kulkul['pengangges'] = $pengangge->unique('id')->values();
+            $kulkul['directions'] = $arah->unique('id')->values();
 
-    //             // pengangge kulkul
-    //             $resultChild = $this->sparql->query('
-    //                 SELECT DISTINCT
-    //                     ?pengangge
-    //                 WHERE {
-    //                     thk:'.$id.' rdf:type thk:Desa;
-    //                                 thk:hasKulkul ?kulkulName .
-    //                     ?kulkulName thk:hasPengangge ?pengangge
-    //                 }
-    //             ');
+            if(count($kulkul['directions']) === 0){
+                $kulkul['directions'] = [[
+                    'id'    => '',
+                    'value' => 'Tidak Tahu'
+                ]];
+            }
 
-    //             $pengangge = [];
-    //             if ($resultChild->numRows() > 0) {
-    //                 foreach ($resultChild as $item) {
-    //                     array_push($pengangge, $this->parseData($item->pengangge->getUri()));
-    //                 }
-    //             }
+            if ($type == "PuraDesa") {
+                $filterImage = "kulkulpuradesa";
+            } else if ($type == "PuraPuseh") {
+                $filterImage = "kulkulpurapuseh";
+            } else {
+                $filterImage = "kulkulpuradalem";
+            }
 
-    //             $kulkul['pengangges'] = $pengangge;
+            // gambar
+            $resultChild = $this->sparql->query('
+                SELECT DISTINCT
+                    ?kulkulUrl
+                WHERE {
+                    thk:' . $id . ' rdf:type thk:Desa.
+                    ?pura thk:hasKulkul ?kulkulName.
+                    ?pura rdf:type thk:'.$type.';
+                            thk:isPartOf thk:' . $id . ' .
+                    ?kulkulName thk:hasImageFile ?kulkulImage .
+                    ?kulkulImage thk:hasUrl ?kulkulUrl .
+                    FILTER REGEX(?kulkulUrl, "files/kulkul/'.$filterImage.'/images", "i")
+                }
+            ');
 
-    //             // gambar
-    //             $resultChild = $this->sparql->query('
-    //                 SELECT DISTINCT
-    //                     ?kulkulUrl
-    //                 WHERE {
-    //                     thk:' . $id . ' rdf:type thk:Desa;
-    //                                     thk:hasKulkul ?kulkulName .
-    //                     ?kulkulName thk:hasImageFile ?kulkulImage .
-    //                     ?kulkulImage thk:hasUrl ?kulkulUrl .
-    //                     FILTER REGEX(?kulkulUrl, "files/kulkul/kulkuldesa/images", "i")
-    //                 }
-    //             ');
+            $images = [];
+            if ($resultChild->numRows() > 0) {
+                foreach ($resultChild as $item) {
+                    array_push($images, $this->parseUrl($item->kulkulUrl->getValue()));
+                }
 
-    //             $images = [];
-    //             if ($resultChild->numRows() > 0) {
-    //                 foreach ($resultChild as $item) {
-    //                     array_push($images, $this->parseUrl($item->kulkulUrl->getValue()));
-    //                 }
+                $kulkul['image'] = $images[0];
+            } else {
+                $kulkul['image'] = null;
+            }
+            $kulkul['imageGallery'] = $images;
 
-    //                 $kulkul['image'] = $images[0];
-    //             }else{
-    //                 $kulkul['image'] = null;
-    //             }
-    //             $kulkul['imageGallery'] = $images;
-    //         }
+            // suara kulkul
+            $result = $this->sparql->query('
+                SELECT DISTINCT 
+                    ?sound 
+                    ?activity 
+                    ?soundUrl 
+                    ?resourceType 
+                    ?soundlabel
+                WHERE{
+                    thk:' . $id . ' rdf:type thk:Desa.
+                    ?pura thk:hasKulkul ?kulkulName.
+                    ?pura rdf:type thk:' . $type . ';
+                            thk:isPartOf thk:' . $id . ';
+                            thk:hasActivity ?activity .
+                    ?kulkulName thk:hasSound ?sound .
+                    ?sound rdfs:label ?soundlabel .
+                    ?sound thk:isSoundFor ?activity .
+                    ?kulkulName thk:isUsedFor ?activity .
+                    OPTIONAL {
+                        ?sound thk:hasSoundFile ?soundFile .
+                        ?kulkulName thk:hasSoundFile ?soundFile .
+                        ?soundFile thk:hasUrl ?soundUrl .
+                        ?soundFile thk:hasResourceType ?resourceType .
+                    }
+                }
+                ORDER BY ?sound
+            ');
 
-    //         $result = $this->sparql->query('
-    //             SELECT 
-    //                 ?banjar
-    //                 (MIN(?kulkulUrl) AS ?image)
-    //             WHERE {
-    //                 ?banjar rdf:type thk:Banjar;
-    //                     thk:isPartOf thk:'.$id.' .
-    //                 ?parent thk:hasKulkul ?kulkul;
-    //                         thk:isPartOf* ?banjar .  
-    //                 ?kulkul thk:hasImageFile ?kulkulImage .
-    //                 ?kulkulImage thk:hasUrl ?kulkulUrl
-    //             }
-    //             GROUP BY ?banjar
-    //             ORDER BY ?banjar
-    //         ');
+            $sounds = [];
+            if ($result->numRows() > 0) {
+                foreach ($result as $item) {
+                    array_push($sounds, [
+                        'activity'  => [
+                            'id'        => $this->parseData($item->activity->getUri(), true),
+                            'value'     => $this->parseData($item->activity->getUri())
+                        ],
+                        'sound'     => $item->soundlabel->getValue(),
+                        'type'      => isset($item->resourceType) ? $this->parseData($item->resourceType->getUri()) : null,
+                        'file'      => isset($item->soundUrl) ? $this->parseUrl($item->soundUrl->getValue()) : null
+                    ]);
+                }
+            }
+            $kulkul['sounds'] = $sounds;
+        }
 
-    //         $data_banjar = [];
-
-    //         foreach ($result as $value) {
-    //             $id_banjar = $this->parseData($value->banjar->getUri(), true);
-    //             $banjar = $this->parseData($value->banjar->getUri());
-    //             $banjar = explode(' ', $banjar);
-    //             $banjar[0] = 'Banjar';
-    //             $banjar = implode(' ', $banjar);
-    //             $image = isset($value->image) ? $this->parseUrl($value->image->getValue()) : '';
-
-    //             array_push($data_banjar, [
-    //                 'id'    => $id_banjar,
-    //                 'name'  => $banjar,
-    //                 'image' => $image
-    //             ]);
-    //         }
-
-    //         return response()->json([
-    //             'status'  => 'success',
-    //             'data'    => [
-    //                 'kulkul' => $kulkul,
-    //                 'banjars' => $data_banjar
-    //             ]
-    //         ]);
-    //     } catch (Throwable $e) {
-    //         return response()->json([
-    //             'status'  => 'fail',
-    //             'message' => $e->getMessage()
-    //         ]);
-    //     }
-    // }
-
-    // public function showByBanjar($id)
-    // {
-    //     try {
-    //         // detail kulkul
-    //         $result = $this->sparql->query('
-    //             SELECT 
-    //                 *
-    //             WHERE {
-    //                 thk:' . $id . ' rdf:type thk:Desa;
-    //                             thk:hasKulkul ?kulkulName .
-    //                 OPTIONAL {
-    //                     ?kulkulName rdfs:label ?kulkulLabel
-    //                 }
-    //             }
-    //         ');
-
-    //         $kulkul = null;
-    //         if ($result->numRows() > 0) {
-    //             if (isset($result[0]->kulkulLabel)) {
-    //                 $kulkul['name'] = $this->parseData($result[0]->kulkulLabel->getValue());
-    //             } else {
-    //                 $kulkul['name'] = $this->parseData($result[0]->kulkulName->getUri());
-    //             }
-
-    //             // jumlah kulkul
-    //             $resultChild = $this->sparql->query('
-    //                 SELECT DISTINCT
-    //                     ?jumlah
-    //                 WHERE {
-    //                     thk:' . $id . ' rdf:type thk:Desa;
-    //                                     thk:hasKulkul ?kulkulName .
-    //                     ?kulkulName thk:numberKulkul ?jumlah
-    //                 }
-    //             ');
-
-    //             $jumlah = [];
-    //             if ($resultChild->numRows() > 0) {
-    //                 foreach ($resultChild as $item) {
-    //                     array_push($jumlah, $item->jumlah->getValue());
-    //                 }
-    //             }
-
-    //             $kulkul['numbers'] = $jumlah;
-
-    //             // bahan baku 
-    //             $resultChild = $this->sparql->query('
-    //                 SELECT DISTINCT
-    //                     ?bahan_baku
-    //                 WHERE {
-    //                     thk:' . $id . ' rdf:type thk:Desa;
-    //                                     thk:hasKulkul ?kulkulName .
-    //                     ?kulkulName thk:hasRawMaterial ?bahan_baku
-    //                 }
-    //             ');
-
-    //             $bahan_baku = [];
-    //             if ($resultChild->numRows() > 0) {
-    //                 foreach ($resultChild as $item) {
-    //                     array_push($bahan_baku, $this->parseData($item->bahan_baku->getUri()));
-    //                 }
-    //             }
-
-    //             $kulkul['rawMaterials'] = $bahan_baku;
-
-    //             // ukuran kulkul
-    //             $resultChild = $this->sparql->query('
-    //                 SELECT DISTINCT
-    //                     ?ukuran
-    //                 WHERE {
-    //                     thk:' . $id . ' rdf:type thk:Desa;
-    //                                 thk:hasKulkul ?kulkulName .
-    //                     ?kulkulName thk:hasDimension ?dimension .
-    //                     ?dimension rdfs:label ?ukuran
-    //                 }
-    //             ');
-
-    //             $ukuran = [];
-    //             if ($resultChild->numRows() > 0) {
-    //                 foreach ($resultChild as $item) {
-    //                     array_push($ukuran, $item->ukuran->getValue());
-    //                 }
-    //             }
-
-    //             $kulkul['dimensions'] = $ukuran;
-
-    //             // pengangge kulkul
-    //             $resultChild = $this->sparql->query('
-    //                 SELECT DISTINCT
-    //                     ?pengangge
-    //                 WHERE {
-    //                     thk:' . $id . ' rdf:type thk:Desa;
-    //                                 thk:hasKulkul ?kulkulName .
-    //                     ?kulkulName thk:hasPengangge ?pengangge
-    //                 }
-    //             ');
-
-    //             $pengangge = [];
-    //             if ($resultChild->numRows() > 0) {
-    //                 foreach ($resultChild as $item) {
-    //                     array_push($pengangge, $this->parseData($item->pengangge->getUri()));
-    //                 }
-    //             }
-
-    //             $kulkul['pengangges'] = $pengangge;
-
-    //             // gambar
-    //             $resultChild = $this->sparql->query('
-    //                 SELECT DISTINCT
-    //                     ?kulkulUrl
-    //                 WHERE {
-    //                     thk:' . $id . ' rdf:type thk:Desa;
-    //                                     thk:hasKulkul ?kulkulName .
-    //                     ?kulkulName thk:hasImageFile ?kulkulImage .
-    //                     ?kulkulImage thk:hasUrl ?kulkulUrl .
-    //                     FILTER REGEX(?kulkulUrl, "files/kulkul/kulkuldesa/images", "i")
-    //                 }
-    //             ');
-
-    //             $images = [];
-    //             if ($resultChild->numRows() > 0) {
-    //                 foreach ($resultChild as $item) {
-    //                     array_push($images, $this->parseUrl($item->kulkulUrl->getValue()));
-    //                 }
-
-    //                 $kulkul['image'] = $images[0];
-    //             } else {
-    //                 $kulkul['image'] = null;
-    //             }
-    //             $kulkul['imageGallery'] = $images;
-    //         }
-
-    //         $result = $this->sparql->query('
-    //             SELECT 
-    //                 ?banjar
-    //                 (MIN(?kulkulUrl) AS ?image)
-    //             WHERE {
-    //                 ?banjar rdf:type thk:Banjar;
-    //                     thk:isPartOf thk:' . $id . ' .
-    //                 ?parent thk:hasKulkul ?kulkul;
-    //                         thk:isPartOf* ?banjar .  
-    //                 ?kulkul thk:hasImageFile ?kulkulImage .
-    //                 ?kulkulImage thk:hasUrl ?kulkulUrl
-    //             }
-    //             GROUP BY ?banjar
-    //             ORDER BY ?banjar
-    //         ');
-
-    //         $data_banjar = [];
-
-    //         foreach ($result as $value) {
-    //             $id_banjar = $this->parseData($value->banjar->getUri(), true);
-    //             $banjar = $this->parseData($value->banjar->getUri());
-    //             $banjar = explode(' ', $banjar);
-    //             $banjar[0] = 'Banjar';
-    //             $banjar = implode(' ', $banjar);
-    //             $image = isset($value->image) ? $this->parseUrl($value->image->getValue()) : '';
-
-    //             array_push($data_banjar, [
-    //                 'id'    => $id_banjar,
-    //                 'name'  => $banjar,
-    //                 'image' => $image
-    //             ]);
-    //         }
-
-    //         return response()->json([
-    //             'status'  => 'success',
-    //             'data'    => [
-    //                 'kulkul' => $kulkul,
-    //                 'banjars' => $data_banjar
-    //             ]
-    //         ]);
-    //     } catch (Throwable $e) {
-    //         return response()->json([
-    //             'status'  => 'fail',
-    //             'message' => $e->getMessage()
-    //         ]);
-    //     }
-    // }
+        return $kulkul;
+    }
 }
