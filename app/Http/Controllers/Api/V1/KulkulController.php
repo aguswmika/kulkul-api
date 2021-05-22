@@ -43,8 +43,6 @@ class KulkulController extends Controller
                     } 
                     GROUP BY ?parent
                     ORDER BY ?id
-                    OFFSET 0
-                    LIMIT 10
                 ');
 
                 $kulkul[strtolower($kabupaten)] = [];
@@ -249,7 +247,7 @@ class KulkulController extends Controller
                         ?kulkulUrl
                     WHERE {
                         thk:' . $id . ' rdf:type thk:Desa;
-                                        thk:hasKulkul ?kulkulName .
+                                        thk:hasKulkul ?kulkulName.
                         ?kulkulName thk:hasImageFile ?kulkulImage .
                         ?kulkulImage thk:hasUrl ?kulkulUrl .
                         FILTER REGEX(?kulkulUrl, "files/kulkul/kulkuldesa/images", "i")
@@ -259,7 +257,7 @@ class KulkulController extends Controller
                 $images = [];
                 if ($result->numRows() > 0) {
                     foreach ($result as $item) {
-                        array_push($images, $this->parseUrl($item->kulkulUrl->getValue()));
+                        array_push($images, isset($item->kulkulUrl) ? $this->parseUrl($item->kulkulUrl->getValue()) : '');
                     }
 
                     $kulkul['image'] = $images[0];
@@ -321,8 +319,10 @@ class KulkulController extends Controller
                         thk:isPartOf thk:' . $id . ' .
                     ?parent thk:hasKulkul ?kulkul;
                             thk:isPartOf* ?banjar .  
-                    ?kulkul thk:hasImageFile ?kulkulImage .
-                    ?kulkulImage thk:hasUrl ?kulkulUrl
+                    OPTIONAL {
+                        ?kulkul thk:hasImageFile ?kulkulImage .
+                        ?kulkulImage thk:hasUrl ?kulkulUrl
+                    }
                 }
                 GROUP BY ?banjar
                 ORDER BY ?banjar

@@ -241,7 +241,7 @@ class ParameterController extends Controller
 
             if ($result->numRows() > 0) {
                 foreach ($result as $data) {
-                    $id = str_replace(' ', '', $data->soundlabel->getValue());
+                    $id = $data->soundlabel->getValue();
                     $value = $data->soundlabel->getValue();
 
                     $populate = [

@@ -194,7 +194,7 @@ class SearchController extends Controller
                                     ?sound01 rdfs:label ?sound .
                                     ?lokasi thk:hasKulkul ?kulkulName .
                                     ?sound01 thk:isSoundFor ?aktivitas .
-                                    FILTER (CONTAINS (?sound, ' . $filter['suara'] . '))';
+                                    FILTER (CONTAINS (?sound, "' . $filter['suara'] . '"))';
         }
         if (!empty($filter['ukuran'])) {
             $query['ukuran'] = '?kulkulName thk:hasDimension thk:' . $filter['ukuran'] . ' .

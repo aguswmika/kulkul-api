@@ -31,9 +31,11 @@ class LocationController extends Controller
                         ?kecamatan rdf:type thk:Kecamatan;
                                     thk:isPartOf thk:'.$id. ' .
                         ?parent thk:hasKulkul ?kulkul;
-                                thk:isPartOf* ?kecamatan .  
-                        ?kulkul thk:hasImageFile ?kulkulImage .
-                        ?kulkulImage thk:hasUrl ?kulkulUrl
+                                thk:isPartOf* ?kecamatan . 
+                        OPTIONAL {
+                            ?kulkul thk:hasImageFile ?kulkulImage .
+                            ?kulkulImage thk:hasUrl ?kulkulUrl .
+                        }
                     }
                     GROUP BY ?kecamatan
                     ORDER BY ?kecamatan
@@ -87,8 +89,10 @@ class LocationController extends Controller
                         thk:isPartOf thk:'.$id. ' .
                     ?parent thk:hasKulkul ?kulkul;
                             thk:isPartOf* ?desa .  
-                    ?kulkul thk:hasImageFile ?kulkulImage .
-                    ?kulkulImage thk:hasUrl ?kulkulUrl
+                    OPTIONAL {
+                        ?kulkul thk:hasImageFile ?kulkulImage .
+                        ?kulkulImage thk:hasUrl ?kulkulUrl
+                    }
                 }
                 GROUP BY ?desa
                 ORDER BY ?desa
@@ -279,6 +283,124 @@ class LocationController extends Controller
                 $data = $sortedData;
             }
 
+
+            return response()->json([
+                'status'  => 'success',
+                'data'    => $data
+            ]);
+        } catch (Throwable $e) {
+            return response()->json([
+                'status'  => 'fail',
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function indexPura()
+    {
+        try {
+            $result = $this->sparql->query('
+                SELECT ?kabupaten
+                WHERE {
+                    ?kabupaten rdf:type thk:Kabupaten
+                } 
+                ORDER BY ?kabupaten
+            ');
+
+            $data = [];
+
+            foreach ($result as $item) {
+                $id = $this->parseData($item->kabupaten->getUri(), true);
+                $kabupaten = $this->parseData($item->kabupaten->getUri());
+
+                $result_kecamatan = $this->sparql->query('
+                    SELECT 
+                        ?kecamatan
+                        (MIN(?kulkulUrl) AS ?image)
+                    WHERE {
+                        ?kecamatan rdf:type thk:Kecamatan;
+                                    thk:isPartOf thk:'.$id. '.
+                        ?pura rdf:type/rdfs:subClassOf* thk:PuraKahyanganTiga;
+                                thk:isPartOf* ?kecamatan . 
+                        ?pura thk:hasKulkul ?kulkul.
+                        ?kulkul thk:hasImageFile ?kulkulImage .
+                        ?kulkulImage thk:hasUrl ?kulkulUrl
+                        FILTER (regex(?kulkulUrl, "files/kulkul/kulkulpura*", "i"))
+                    }
+                    GROUP BY ?kecamatan
+                    ORDER BY ?kecamatan
+                ');
+
+                $data_kecamatan = [];
+
+                foreach ($result_kecamatan as $value) {
+                    $id_kecamatan = $this->parseData($value->kecamatan->getUri(), true);
+                    $kecamatan = $this->parseData($value->kecamatan->getUri());
+                    $kecamatan = explode(' ', $kecamatan);
+                    $kecamatan[0] = 'Kecamatan';
+                    $kecamatan = implode(' ', $kecamatan);
+                    $image = isset($value->image) ? $this->parseUrl($value->image->getValue()) : '';
+
+                    array_push($data_kecamatan, [
+                        'id'    => $id_kecamatan,
+                        'name'  => $kecamatan,
+                        'image' => $image
+                    ]);
+                }
+                
+                array_push($data, [
+                    'id'    => $id,
+                    'name'  => $kabupaten,
+                    'kecamatan' => $data_kecamatan
+                ]);
+            }
+
+            return response()->json([
+                'status'  => 'success',
+                'data'    => $data
+            ]);
+        } catch (Throwable $e) {
+            return response()->json([
+                'status'  => 'fail',
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function indexPuraDesa($id)
+    {
+        try { 
+            $result = $this->sparql->query('
+                SELECT 
+                    ?desa
+                    (MIN(?kulkulUrl) AS ?image)
+                WHERE {
+                    ?desa rdf:type thk:Desa;
+                        thk:isPartOf thk:' . $id . ' .
+                    ?pura rdf:type/rdfs:subClassOf* thk:PuraKahyanganTiga;
+                            thk:isPartOf* ?desa.
+                    ?pura thk:hasKulkul ?kulkul.
+                    ?kulkul thk:hasImageFile ?kulkulImage .
+                    ?kulkulImage thk:hasUrl ?kulkulUrl
+                    FILTER (regex(?kulkulUrl, "files/kulkul/kulkulpura*", "i"))
+                }
+                GROUP BY ?desa
+                ORDER BY ?desa
+            ');
+
+            $data = [];
+
+            foreach ($result as $item) {
+                $id_desa = $this->parseData($item->desa->getUri(), true);
+                $desa = $this->parseData($item->desa->getUri());
+                $image = isset($item->image) ? $this->parseUrl($item->image->getValue()) : '';
+
+                array_push($data, [
+                    'id'    => $id_desa,
+                    'name'  => $desa,
+                    'image' => $image
+                ]);
+            }
 
             return response()->json([
                 'status'  => 'success',

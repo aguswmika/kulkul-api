@@ -27,6 +27,10 @@ Route::group([
     'prefix' => 'v1'
 ], function () {
     Route::get('/location', [LocationController::class, 'index']);
+    
+    Route::get('/location/pura', [LocationController::class, 'indexPura']);
+    Route::get('/location/pura/{id}/desa', [LocationController::class, 'indexPuraDesa']);
+
     Route::get('/location/{id}/desa', [LocationController::class, 'indexDesa']);
     Route::get('/location/{type}/{id}', [LocationController::class, 'indexById']);
 
