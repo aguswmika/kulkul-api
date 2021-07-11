@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\KulkulController;
 use App\Http\Controllers\Api\V1\LocationController;
@@ -26,6 +27,22 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 Route::group([
     'prefix' => 'v1'
 ], function () {
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::group([
+        'middleware' => 'auth:sanctum'
+    ], function(){
+        Route::get('/me', [AuthController::class, 'me']);
+        Route::get('/params/dimension', [ParameterController::class, 'indexDimension']);
+        Route::get('/params/direction', [ParameterController::class, 'indexDirection']);
+        Route::get('/params/activity', [ParameterController::class, 'indexActivity']);
+        Route::get('/params/kabupaten', [ParameterController::class, 'indexKabupaten']);
+        Route::get('/params/pengangge', [ParameterController::class, 'indexPengangge']);
+        Route::get('/params/kabupaten/{id}/kecamatan', [ParameterController::class, 'indexKecamatan']);
+        Route::get('/params/kecamatan/{id}/desa', [ParameterController::class, 'indexDesa']);
+
+        Route::post('/kulkul', [KulkulController::class, 'store']);
+    });
+
     Route::get('/location', [LocationController::class, 'index']);
     
     Route::get('/location/pura', [LocationController::class, 'indexPura']);
@@ -40,7 +57,7 @@ Route::group([
 
     Route::get('/category', [CategoryController::class, 'index']);
 
-    Route::get('/params', [ParameterController::class, 'index']);
-    
     Route::post('/search', [SearchController::class, 'index']);
+    
+    Route::get('/params', [ParameterController::class, 'index']);
 });

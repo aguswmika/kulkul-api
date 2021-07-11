@@ -22,7 +22,7 @@ class Controller extends BaseController
         RdfNamespace::set('owl', 'http://www.w3.org/2002/07/owl#');
         RdfNamespace::set('thk', 'http://dpch.oss.web.id/Bali/TriHitaKarana.owl#');
 
-        $this->sparql = new Client(env('APP_JENA', 'https://jena.balidigitalheritage.com/fuseki/kulkul/query'));
+        $this->sparql = new Client(env('APP_JENA', 'http://localhost:3030/kulkul'), env('APP_JENA', 'http://localhost:3030/kulkul').'/update');
     }
 
     public function parseData($data, $raw = false)

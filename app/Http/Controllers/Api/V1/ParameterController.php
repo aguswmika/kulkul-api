@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use EasyRdf\Exception;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use Throwable;
 
 class ParameterController extends Controller
 {
-    function index(){
+    public function index(){
         try {
             $output = [
                 [
@@ -283,7 +285,308 @@ class ParameterController extends Controller
                     'filter' => $filter
                 ]
             ]);
-        } catch (Exception | \Exception $e) {
+        } catch (Throwable $e) {
+            return response()->json([
+                'status'  => 'fail',
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function indexKabupaten(){
+        try {
+            $result = $this->sparql->query('
+                SELECT ?kabupaten
+                WHERE {
+                    ?kabupaten rdf:type thk:Kabupaten
+                } 
+                ORDER BY ?kabupaten
+            ');
+
+            $data = [];
+
+            if ($result->numRows() > 0) {
+                foreach ($result as $item) {
+                    $uri = $item->kabupaten->getUri();
+
+                    $id = $this->parseData($uri, true);
+                    $value = $this->parseData($uri);
+
+                    array_push($data, [
+                        'id' => $id,
+                        'value' => $value
+                    ]);
+                }
+            }
+
+            return response()->json([
+                'status'  => 'success',
+                'data'    => $data
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => 'fail',
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function indexKecamatan($id)
+    {
+        try {
+            $result = $this->sparql->query('
+                SELECT ?kecamatan
+                WHERE {
+                    ?kecamatan rdf:type thk:Kecamatan;
+                                thk:isPartOf thk:'.$id.'
+                } 
+                ORDER BY ?kecamatan
+            ');
+
+            $data = [];
+
+            if ($result->numRows() > 0) {
+                foreach ($result as $item) {
+                    $uri = $item->kecamatan->getUri();
+
+                    $id = $this->parseData($uri, true);
+                    $value = str_replace('Kec', 'Kecamatan', $this->parseData($uri));
+
+                    array_push($data, [
+                        'id' => $id,
+                        'value' => $value
+                    ]);
+                }
+            }
+
+            return response()->json([
+                'status'  => 'success',
+                'data'    => $data
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => 'fail',
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function indexDesa(Request $request, $id)
+    {
+        $validator = Validator ::make($request->all(), [
+            'keyword'    => 'nullable',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status'    => 'validator',
+                'message'   => $validator->errors()->all()
+            ]);
+        }
+        try {
+            $result = $this->sparql->query('
+                SELECT DISTINCT * {
+                    ?desa rdf:type thk:Desa;
+                        thk:isPartOf thk:'.$id.';
+                        rdfs:label ?desaLabel.
+                }
+                ORDER BY ?desa
+            ');
+
+            $data = [];
+
+            if ($result->numRows() > 0) {
+                foreach ($result as $item) {
+                    $uri = $item->kecamatan->getUri();
+
+                    $id = $this->parseData($uri, true);
+                    $value = str_replace('Kec', 'Kecamatan', $this->parseData($uri));
+
+                    array_push($data, [
+                        'id' => $id,
+                        'value' => $value
+                    ]);
+                }
+            }
+
+            return response()->json([
+                'status'  => 'success',
+                'data'    => $data
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => 'fail',
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function indexDimension()
+    {
+        try {
+            $result = $this->sparql->query('
+                SELECT DISTINCT ?ukuran ?labelukuran {
+                    ?ukuran a thk:DimensiKulkul;
+                            rdfs:label ?labelukuran
+                }
+                ORDER BY ?ukuran
+            ');
+
+            $data = [];
+
+            if ($result->numRows() > 0) {
+                foreach ($result as $item) {
+                    $uri = $item->ukuran->getUri();
+
+                    $id = $this->parseData($uri, true);
+                    $value = $item->labelukuran->getValue();
+
+                    array_push($data, [
+                        'id'    => $id,
+                        'value' => $value
+                    ]);
+                }
+            }
+
+            return response()->json([
+                'status'  => 'success',
+                'data'    => $data
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => 'fail',
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function indexDirection()
+    {
+        try {
+            $result = $this->sparql->query('
+                SELECT DISTINCT ?direction {
+                    ?kulkul thk:hasDirection ?direction .
+                }
+                ORDER BY ?direction
+            ');
+
+            $data = [];
+
+            if ($result->numRows() > 0) {
+                foreach ($result as $item) {
+                    $uri = $item->direction->getUri();
+
+                    $id = $this->parseData($uri, true);
+                    $value = $this->parseData($uri);
+
+                    array_push($data, [
+                        'id'    => $id,
+                        'value' => $value
+                    ]);
+                }
+            }
+
+            return response()->json([
+                'status'  => 'success',
+                'data'    => $data
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => 'fail',
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function indexPengangge(Request $request){
+        try {
+            $result = $this->sparql->query('
+                SELECT DISTINCT ?pengangge {
+                    ?kulkul thk:hasPengangge ?pengangge .
+                    FILTER REGEX(str(?pengangge), "'.str_replace(' ', '', $request->keyword).'", "i")
+                }
+                ORDER BY ?pengangge
+            ');
+
+            $data = [];
+
+            if ($result->numRows() > 0) {
+                foreach ($result as $item) {
+                    $uri = $item->pengangge->getUri();
+
+                    $id = $this->parseData($uri, true);
+                    $value =  $this->parseData($uri);
+
+                    array_push($data, [
+                        'id'    => $id,
+                        'value' => $value
+                    ]);
+                }
+            }
+
+            return response()->json([
+                'status'  => 'success',
+                'data'    => $data
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => 'fail',
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function indexActivity(){
+        try {
+            $result = $this->sparql->query('
+                SELECT DISTINCT ?activity {
+                    ?activity rdfs:subClassOf thk:Keadaan .
+                }
+            ');
+
+            $data = [];
+
+            if ($result->numRows() > 0) {
+                foreach ($result as $item) {
+                    $uri = $item->activity->getUri();
+
+                    $id = $this->parseData($uri, true);
+                    $value =  $this->parseData($uri);
+
+                    array_push($data, [
+                        'id'    => $id,
+                        'value' => $value
+                    ]);
+
+                    $resultChild = $this->sparql->query('
+                        SELECT DISTINCT ?aktivitas {
+                            ?aktivitas rdfs:subClassOf thk:' . $id . ' .
+                        }
+                        ORDER BY ?aktivitas
+                    ');
+
+                    if ($resultChild->numRows() > 0) {
+                        foreach ($resultChild as $dataChild) {
+                            $uriChild = $dataChild->aktivitas->getUri();
+                            $idChild = $this->parseData($uriChild, true);
+
+                            $populate = [
+                                'id'    => $idChild,
+                                'value' => $this->parseData($uriChild)
+                            ];
+
+                            array_push($data, $populate);
+                        }
+                    }
+
+                }
+            }
+
+            return response()->json([
+                'status'  => 'success',
+                'data'    => $data
+            ]);
+        } catch (\Throwable $e) {
             return response()->json([
                 'status'  => 'fail',
                 'message' => $e->getMessage()
