@@ -844,7 +844,7 @@ class KulkulController extends Controller
                 } 
             EOT;
             
-            // Log::info($query);
+            Log::info($query);
             $res = $this->sparql->update($query);
 
             if($res->isSuccessful()){
@@ -957,7 +957,7 @@ class KulkulController extends Controller
                 } 
             EOT;
 
-            // Log::info($query);
+            Log::info($query);
             $this->sparql->update($query);
         }
 
@@ -1030,7 +1030,7 @@ class KulkulController extends Controller
                     }
                 EOT;
 
-                // Log::info($query);
+                Log::info($query);
                 $this->sparql->update($query);
             }
         }

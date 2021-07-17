@@ -20,5 +20,5 @@ Route::get('/', function () {
 
 
 Route::get('/password', function(){
-    return Hash::make('admin');
+    return Hash::make('informatika');
 });
