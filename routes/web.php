@@ -18,6 +18,10 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/passwords', function () {
+    return trim(preg_replace('/(?<!\ )[A-Z]/', ' $0', 'AsaaaasasAss'));
+});
+
 
 Route::get('/password', function(){
     return Hash::make('informatika');

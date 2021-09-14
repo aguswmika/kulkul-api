@@ -51,4 +51,8 @@ class Controller extends BaseController
     {
         return 'https://server.aguswmika.id/storage/' . $url;
     }
+
+    public function parseUcase($data){
+        return trim(preg_replace('/(?<!\ )[A-Z]/', ' $0', $data));
+    }
 }
